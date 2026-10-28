@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tema belirteçleri: açık / koyu mod tek yerde değişir, bileşenler bg-surface gibi sınıfları kullanır. */
+:root {
+  --bg: #eef2f0;
+  --surface: #ffffff;
+  --surface-2: #f6f8f7;
+  --ink: #12201c;
+  --muted: #5a6b66;
+  --line: #d9e1de;
+  --income: #0b7a6b;
+  --expense: #c2413d;
+  --brand: #0b7a6b;
+  --brand-ink: #ffffff;
+  --focus: #0b7a6b;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0e1513;
+  --surface: #162120;
+  --surface-2: #1c2a28;
+  --ink: #e6efec;
+  --muted: #93a7a1;
+  --line: #27393a;
+  --income: #4fd1b8;
+  --expense: #ff8a80;
+  --brand: #4fd1b8;
+  --brand-ink: #08201b;
+  --focus: #4fd1b8;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tutarlar hizalı dursun */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+dialog {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rise {
+  animation: rise 0.25s ease-out;
+}
