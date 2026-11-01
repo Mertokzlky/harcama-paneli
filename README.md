@@ -2,7 +2,7 @@
 
 A personal budget and expense tracking dashboard. Record income and expenses, see where your money goes by category, follow the monthly trend, and move your data in and out with CSV. The interface is in Turkish and amounts are in Turkish lira (₺).
 
-**Live demo:** _add your Vercel URL here after deploying_
+**Live demo:** https://harcama-paneli-cg6f.vercel.app
 
 ![Dashboard (light)](docs/dashboard-light.png)
 
