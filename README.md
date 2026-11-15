@@ -24,6 +24,8 @@ A personal budget and expense tracking dashboard. Record income and expenses, se
 - CSV export (of the currently filtered list) and CSV import with a validation preview
 - Dark mode (follows the system setting, remembers your choice), responsive layout, empty states
 - Data is private per user and enforced on the server with Firestore security rules
+- Undo after deleting a transaction
+- Month-to-date comparison against the same days of the previous month
 
 ## Tech stack
 
