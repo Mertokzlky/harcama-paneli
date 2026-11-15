@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { applyFilters, hasActiveFilters } from '../../lib/filters'
-import { expenseByCategory, monthlyTrend, summarize } from '../../lib/stats'
+import { compareWithPreviousMonth, expenseByCategory, monthlyTrend, summarize } from '../../lib/stats'
 import { EMPTY_FILTERS } from '../../lib/types'
 import type { AppUser, Filters as FiltersState, Transaction, TransactionInput } from '../../lib/types'
 import { useToast } from '../../hooks/useToast'
@@ -9,13 +9,13 @@ import { transactionService } from '../../services'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Icon } from '../ui/Icon'
-import { ConfirmDialog } from '../transactions/ConfirmDialog'
 import { CsvTools } from '../transactions/CsvTools'
 import { Filters } from '../transactions/Filters'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
 import { CategoryPie } from './CategoryPie'
 import { Header } from './Header'
+import { MonthComparison } from './MonthComparison'
 import { MonthlyTrend } from './MonthlyTrend'
 import { SummaryStrip } from './SummaryStrip'
 
@@ -26,13 +26,17 @@ export function Dashboard({ user }: { user: AppUser }) {
   const { transactions, loading, error } = useTransactions(user.uid)
   const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS)
   const [form, setForm] = useState<FormState>({ mode: 'closed' })
-  const [toDelete, setToDelete] = useState<Transaction | null>(null)
+  // Silme sonrası liste yukarı kayar; çift tıklamada ikinci tık bir sonraki satırı silmesin diye
+  // kısa bir bekleme uygulanır. Aynı satırın (yavaş ağda) iki kez silinmesi de engellenir.
+  const deleting = useRef(new Set<string>())
+  const lastDeleteAt = useRef(0)
 
   const filtered = useMemo(() => applyFilters(transactions, filters), [transactions, filters])
   const allTime = useMemo(() => summarize(transactions), [transactions])
   const period = useMemo(() => summarize(filtered), [filtered])
   const slices = useMemo(() => expenseByCategory(filtered), [filtered])
   const trend = useMemo(() => monthlyTrend(filtered), [filtered])
+  const comparison = useMemo(() => compareWithPreviousMonth(transactions), [transactions])
 
   const filtering = hasActiveFilters(filters)
   const openCreate = () => setForm({ mode: 'create' })
@@ -47,12 +51,34 @@ export function Dashboard({ user }: { user: AppUser }) {
     }
   }
 
+  async function restore(input: TransactionInput) {
+    try {
+      await transactionService.add(user.uid, input)
+      toast('İşlem geri alındı.')
+    } catch {
+      toast('İşlem geri alınamadı.', 'error')
+    }
+  }
+
   async function remove(tx: Transaction) {
+    const now = Date.now()
+    if (deleting.current.has(tx.id) || now - lastDeleteAt.current < 600) return
+    lastDeleteAt.current = now
+    deleting.current.add(tx.id)
+    const input: TransactionInput = {
+      type: tx.type,
+      amountMinor: tx.amountMinor,
+      category: tx.category,
+      date: tx.date,
+      note: tx.note,
+    }
     try {
       await transactionService.remove(user.uid, tx.id)
-      toast('İşlem silindi.')
+      toast('İşlem silindi.', 'success', { label: 'Geri al', onClick: () => void restore(input) })
     } catch {
       toast('İşlem silinemedi. Tekrar dene.', 'error')
+    } finally {
+      deleting.current.delete(tx.id)
     }
   }
 
@@ -91,6 +117,7 @@ export function Dashboard({ user }: { user: AppUser }) {
               period={period}
               periodLabel={filtering ? 'Seçili filtreler' : 'Tüm zamanlar'}
             />
+            {comparison && <MonthComparison data={comparison} />}
             <Filters value={filters} onChange={setFilters} />
 
             <div className="grid gap-5 lg:grid-cols-2">
@@ -120,7 +147,7 @@ export function Dashboard({ user }: { user: AppUser }) {
                   <TransactionList
                     items={filtered}
                     onEdit={(tx) => setForm({ mode: 'edit', tx })}
-                    onDelete={setToDelete}
+                    onDelete={(tx) => void remove(tx)}
                   />
                 </div>
               )}
@@ -135,16 +162,6 @@ export function Dashboard({ user }: { user: AppUser }) {
           initial={form.mode === 'edit' ? form.tx : undefined}
           onSubmit={save}
           onClose={() => setForm({ mode: 'closed' })}
-        />
-      )}
-
-      {toDelete && (
-        <ConfirmDialog
-          title="İşlemi sil"
-          message="Bu işlem kalıcı olarak silinecek. Bu işlem geri alınamaz."
-          confirmLabel="Sil"
-          onConfirm={() => remove(toDelete)}
-          onClose={() => setToDelete(null)}
         />
       )}
     </>
