@@ -27,6 +27,25 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    // Kategori başına aylık bütçe limiti: users/{uid}/budgets/{kategori}
+    match /users/{uid}/budgets/{categoryId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      function isValid(d) {
+        return d.keys().hasOnly(['limitMinor', 'updatedAt'])
+          && d.limitMinor is int && d.limitMinor > 0 && d.limitMinor <= 99999999999
+          && d.updatedAt == request.time;
+      }
+
+      allow read: if isOwner();
+      allow create, update: if isOwner()
+                            && categoryId.matches('^[a-z0-9-]{1,40}$')
+                            && isValid(request.resource.data);
+      allow delete: if isOwner();
+    }
+
     // Diğer her şey kapalı.
     match /{document=**} {
       allow read, write: if false;
