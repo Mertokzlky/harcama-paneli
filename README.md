@@ -26,6 +26,7 @@ A personal budget and expense tracking dashboard. Record income and expenses, se
 - Data is private per user and enforced on the server with Firestore security rules
 - Undo after deleting a transaction
 - Month-to-date comparison against the same days of the previous month
+- Monthly spending limits per category with progress bars and warnings at 80% and when exceeded
 
 ## Tech stack
 
@@ -144,7 +145,7 @@ Design notes:
 
 ## Roadmap
 
-- Custom categories and budgets per category
+- Custom categories
 - Recurring transactions
 - Firestore rules tests with the Firebase emulator
 - End-to-end tests (Playwright)
