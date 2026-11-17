@@ -12,6 +12,7 @@
   --line: #d9e1de;
   --income: #0b7a6b;
   --expense: #c2413d;
+  --warning: #b45309;
   --brand: #0b7a6b;
   --brand-ink: #ffffff;
   --focus: #0b7a6b;
@@ -27,6 +28,7 @@
   --line: #27393a;
   --income: #4fd1b8;
   --expense: #ff8a80;
+  --warning: #f5b042;
   --brand: #4fd1b8;
   --brand-ink: #08201b;
   --focus: #4fd1b8;
@@ -43,6 +45,7 @@
   --color-line: var(--line);
   --color-income: var(--income);
   --color-expense: var(--expense);
+  --color-warning: var(--warning);
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
 }
