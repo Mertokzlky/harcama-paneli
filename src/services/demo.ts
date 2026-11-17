@@ -1,7 +1,8 @@
+import type { Budget } from '../lib/budgets'
 import { sortTransactions } from '../lib/filters'
 import { toISO } from '../lib/format'
 import type { AppUser, Transaction, TransactionInput } from '../lib/types'
-import type { AuthService, TransactionService } from './types'
+import type { AuthService, BudgetService, TransactionService } from './types'
 
 /**
  * Demo modu (VITE_DEMO_MODE=true): Firebase olmadan, veriler tarayıcıda localStorage'da.
@@ -9,11 +10,13 @@ import type { AuthService, TransactionService } from './types'
  */
 const USER_KEY = 'harcama-demo-user'
 const DATA_KEY = 'harcama-demo-transactions'
+const BUDGET_KEY = 'harcama-demo-budgets'
 
 const DEMO_USER: AppUser = { uid: 'demo', email: 'demo@harcama.app' }
 
 const authListeners = new Set<(u: AppUser | null) => void>()
 const dataListeners = new Set<() => void>()
+const budgetListeners = new Set<() => void>()
 
 const read = <T,>(key: string, fallback: T): T => {
   try {
@@ -108,5 +111,42 @@ export const demoTransactionService: TransactionService = {
   },
   async addMany(_uid, inputs: TransactionInput[]) {
     save([...load(), ...inputs.map((i) => ({ ...i, id: crypto.randomUUID() }))])
+  },
+}
+
+// Demo bütçeleri: örnek harcamalarla farklı durumlar (tamam / uyarı / aşıldı) görünsün diye seçildi.
+const SEED_BUDGETS: Budget[] = [
+  { categoryId: 'market', limitMinor: 200_000 },
+  { categoryId: 'yemek', limitMinor: 60_000 },
+  { categoryId: 'ulasim', limitMinor: 40_000 },
+  { categoryId: 'eglence', limitMinor: 30_000 },
+  { categoryId: 'fatura', limitMinor: 50_000 },
+]
+
+function loadBudgets(): Budget[] {
+  const stored = read<Budget[] | null>(BUDGET_KEY, null)
+  if (stored) return stored
+  localStorage.setItem(BUDGET_KEY, JSON.stringify(SEED_BUDGETS))
+  return SEED_BUDGETS
+}
+
+const saveBudgets = (list: Budget[]) => {
+  localStorage.setItem(BUDGET_KEY, JSON.stringify(list))
+  budgetListeners.forEach((cb) => cb())
+}
+
+export const demoBudgetService: BudgetService = {
+  subscribe(_uid, onData) {
+    const push = () => onData(loadBudgets())
+    budgetListeners.add(push)
+    queueMicrotask(push)
+    return () => budgetListeners.delete(push)
+  },
+  async set(_uid, categoryId, limitMinor) {
+    const rest = loadBudgets().filter((b) => b.categoryId !== categoryId)
+    saveBudgets([...rest, { categoryId, limitMinor }])
+  },
+  async remove(_uid, categoryId) {
+    saveBudgets(loadBudgets().filter((b) => b.categoryId !== categoryId))
   },
 }
