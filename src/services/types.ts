@@ -1,3 +1,4 @@
+import type { Budget } from '../lib/budgets'
 import type { AppUser, Transaction, TransactionInput } from '../lib/types'
 
 export interface AuthService {
@@ -18,4 +19,11 @@ export interface TransactionService {
   update(uid: string, id: string, input: TransactionInput): Promise<void>
   remove(uid: string, id: string): Promise<void>
   addMany(uid: string, inputs: TransactionInput[]): Promise<void>
+}
+
+export interface BudgetService {
+  subscribe(uid: string, onData: (list: Budget[]) => void, onError: (err: Error) => void): () => void
+  /** Kategori için limiti oluşturur ya da günceller. */
+  set(uid: string, categoryId: string, limitMinor: number): Promise<void>
+  remove(uid: string, categoryId: string): Promise<void>
 }
