@@ -92,6 +92,7 @@ Demo mode is for development and screenshots only. Do not enable it in productio
 | `npm run preview` | Preview the production build |
 | `npm run lint` | Lint with oxlint |
 | `npm test` | Run unit tests (Vitest) |
+| `npm run test:rules` | Runs the Firestore security rules tests against the local emulator (requires Java 21+) |
 
 ## CSV format
 
@@ -129,6 +130,7 @@ Design notes:
 - Firebase web config values are identifiers, not secrets; what actually protects your data is the security rules and Authentication. They are still kept out of git, as is good practice.
 - CSV export neutralises cells starting with `=`, `+`, `-` or `@` to prevent spreadsheet formula injection.
 - For production, consider enabling [Firebase App Check](https://firebase.google.com/docs/app-check) and restricting your API key by HTTP referrer in Google Cloud Console.
+- Firestore rules are covered by automated tests (53 cases) that run against the emulator in CI.
 
 ## Deploy to Vercel
 
