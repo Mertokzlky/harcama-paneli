@@ -13,6 +13,7 @@ coverage
 # Firebase CLI
 .firebase/
 firebase-debug.log*
+*-debug.log
 .firebaserc
 
 # Vercel
