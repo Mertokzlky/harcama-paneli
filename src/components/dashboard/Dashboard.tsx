@@ -141,7 +141,7 @@ export function Dashboard({ user }: { user: AppUser }) {
                 <Icon name="plus" className="size-4" />
                 İlk işlemi ekle
               </Button>
-              <CsvTools exportItems={[]} onImport={(rows) => transactionService.addMany(user.uid, rows)} />
+              <CsvTools exportItems={[]} existing={transactions} onImport={(rows) => transactionService.addMany(user.uid, rows)} />
             </EmptyState>
           </section>
         ) : (
@@ -173,7 +173,7 @@ export function Dashboard({ user }: { user: AppUser }) {
                 <h2 id="list-title" className="text-base font-bold">
                   İşlemler <span className="font-normal text-muted">({filtered.length})</span>
                 </h2>
-                <CsvTools exportItems={filtered} onImport={(rows) => transactionService.addMany(user.uid, rows)} />
+                <CsvTools exportItems={filtered} existing={transactions} onImport={(rows) => transactionService.addMany(user.uid, rows)} />
               </div>
 
               {filtered.length === 0 ? (

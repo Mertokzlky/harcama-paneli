@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { parseTransactionsCsv, toCsv } from '../../lib/csv'
 import type { CsvParseResult } from '../../lib/csv'
+import { splitDuplicates } from '../../lib/dedupe'
 import { todayISO } from '../../lib/format'
 import type { Transaction, TransactionInput } from '../../lib/types'
 import { useToast } from '../../hooks/useToast'
@@ -14,14 +15,17 @@ const MAX_FILE_BYTES = 1_000_000
 interface Props {
   /** Dışa aktarılacak (filtrelenmiş) işlemler. */
   exportItems: Transaction[]
+  /** Tekrar tespiti için tüm mevcut işlemler (filtrelenmemiş). */
+  existing: Transaction[]
   onImport: (rows: TransactionInput[]) => Promise<void>
 }
 
-export function CsvTools({ exportItems, onImport }: Props) {
+export function CsvTools({ exportItems, existing, onImport }: Props) {
   const toast = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<{ name: string; result: CsvParseResult } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [includeDuplicates, setIncludeDuplicates] = useState(false)
 
   function exportCsv() {
     const blob = new Blob([toCsv(exportItems)], { type: 'text/csv;charset=utf-8' })
@@ -43,15 +47,22 @@ export function CsvTools({ exportItems, onImport }: Props) {
       return
     }
     const text = await file.text()
+    setIncludeDuplicates(false)
     setPreview({ name: file.name, result: parseTransactionsCsv(text) })
   }
 
+  const split = useMemo(
+    () => (preview ? splitDuplicates(preview.result.rows, existing) : null),
+    [preview, existing],
+  )
+  const toImport = split ? (includeDuplicates ? preview!.result.rows : split.fresh) : []
+
   async function confirmImport() {
-    if (!preview) return
+    if (!preview || toImport.length === 0) return
     setBusy(true)
     try {
-      await onImport(preview.result.rows)
-      toast(`${preview.result.rows.length} işlem içe aktarıldı.`)
+      await onImport(toImport)
+      toast(`${toImport.length} işlem içe aktarıldı.`)
       setPreview(null)
     } catch {
       toast('İçe aktarma başarısız oldu. Tekrar dene.', 'error')
@@ -88,7 +99,12 @@ export function CsvTools({ exportItems, onImport }: Props) {
         <Modal title="CSV içe aktarma" onClose={() => setPreview(null)}>
           <p className="text-sm text-muted">{preview.name}</p>
           <p className="mt-3 text-sm">
-            <strong className="text-income">{result.rows.length}</strong> geçerli satır
+            <strong className="text-income">{split?.fresh.length ?? 0}</strong> yeni işlem
+            {split && split.duplicates.length > 0 && (
+              <>
+                , <strong>{split.duplicates.length}</strong> zaten kayıtlı
+              </>
+            )}
             {result.issues.length > 0 && (
               <>
                 , <strong className="text-expense">{result.issues.length}</strong> hatalı satır (atlanacak)
@@ -106,16 +122,31 @@ export function CsvTools({ exportItems, onImport }: Props) {
               {result.issues.length > 20 && <li>… ve {result.issues.length - 20} hata daha</li>}
             </ul>
           )}
+          {split && split.duplicates.length > 0 && (
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeDuplicates}
+                onChange={(e) => setIncludeDuplicates(e.target.checked)}
+                className="mt-0.5 size-4 accent-[var(--color-brand)]"
+              />
+              <span>
+                Zaten kayıtlı olanları da yine de ekle
+                <span className="block text-xs text-muted">
+                  Tarih, tür, kategori, tutar ve notu aynı olan satırlar tekrar sayılır.
+                </span>
+              </span>
+            </label>
+          )}
           <p className="mt-3 text-xs text-muted">
-            Beklenen sütunlar: Tarih; Tür (Gelir/Gider); Kategori; Tutar; Not. Mevcut kayıtlar silinmez; aynı
-            satırları iki kez içe aktarırsan çift kayıt oluşur.
+            Beklenen sütunlar: Tarih; Tür (Gelir/Gider); Kategori; Tutar; Not. Mevcut kayıtlar silinmez.
           </p>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setPreview(null)}>
               Vazgeç
             </Button>
-            <Button variant="primary" disabled={busy || result.rows.length === 0} onClick={() => void confirmImport()}>
-              {busy ? 'Aktarılıyor…' : `${result.rows.length} işlemi içe aktar`}
+            <Button variant="primary" disabled={busy || toImport.length === 0} onClick={() => void confirmImport()}>
+              {busy ? 'Aktarılıyor…' : `${toImport.length} işlemi içe aktar`}
             </Button>
           </div>
         </Modal>
